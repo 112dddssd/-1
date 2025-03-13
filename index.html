@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日语闪卡背单词</title>
+    <style>
+        /* 📌 页面整体布局 */
+        body {
+            font-family: Arial, "Hiragino Kaku Gothic Pro", "Meiryo", sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+            margin: 0;
+        }
+
+        /* 📌 顶部操作栏（选择文件、导入词库） */
+        .controls {
+            position: absolute;
+            top: 20px;
+            display: flex;
+            gap: 15px;
+            padding: 10px;
+            background: #fecf9f;
+            border-radius: 10px;
+        }
+
+        /* 📌 隐藏默认文件输入框 */
+        input[type="file"] {
+            display: none;
+        }
+
+        /* 📌 顶部按钮 */
+        .custom-file-upload, .import-button {
+            background: #FAF0E6;
+            color: black;
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .custom-file-upload:hover, .import-button:hover {
+            background: #F5DEB3;
+        }
+
+        /* 📌 单词卡片整体样式 */
+        .card {
+            width: 50vw;
+            height: 45vh;
+            perspective: 1000px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: row;  /* 水平排列单词列表和卡片 */
+            align-items: center;  /* 垂直居中 */
+            justify-content: center;  /* 水平居中 */
+            width: 100%;
+            height: 100vh;  /* 使容器占满整个屏幕 */
+        }
+
+    /* 确保 .word-list 在最左边 */
+        .word-list {
+            width: 250px;  /* 固定宽度 */
+            height: 80vh;  /* 高度占视窗的 90% */
+            overflow-y: auto;  /* 允许垂直滚动 */
+            padding: 10px;
+            background: #f9f9f9;
+            border-right: 2px solid #ddd;  /* 设置右侧边框，和卡片分开 */
+            text-align: center;
+            position: absolute;  /* 使用绝对定位 */
+            top: 10%;  /* 离页面顶部 10% 的距离 */
+            left: 10px;  /* 离页面左边 10px */
+        }
+
+
+
+   /* 📌 卡片宽度和高度调整 */
+        .card {
+            width: 40%;  /* 设置卡片宽度为页面的60% */
+            height: 50vh; /* 设置卡片高度为页面的60% */
+            perspective: 1000px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            margin-left: 40px;   /*给卡片添加左边距，避免和列表直接接触 */
+        }
+
+
+        /* 📌 单词列表的每一项 */
+        .word-list ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .word-list li {
+            padding: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            border-bottom: 1px solid #ddd;
+            transition: background 0.3s;
+            display: flex;
+            flex-direction: column; /* 让假名在上，汉字和中文在下 */
+        }
+
+        /* 📌 假名（默认显示） */
+        .word-list .reading {
+            font-size: 20px;
+            font-weight: bold;
+            color: black;
+        }
+
+        /* 📌 汉字和中文（默认隐藏，点击后显示） */
+        .word-list .extra-info {
+            display: flex;
+            justify-content: center;
+             gap: 8px;  /* 间距缩小 */
+             align-items: center;
+        }
+
+        /* 📌 汉字（黑色） */
+        .word-list .kanji {
+            font-weight: bold;
+            color: rgb(161, 19, 19);
+        }
+
+        /* 📌 中文释义（灰色，字体小一号） */
+        .word-list .definition {
+            font-size: 14px;
+            color: gray;
+        }
+
+
+
+
+
+        /* 📌 卡片翻转效果 */
+        .card-inner {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+        }
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        /* 📌 正面（单词）& 反面（释义） */
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 36px;
+            font-weight: bold;
+            border-radius: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+        }
+
+        /* 📌 反面背景色 */
+        .card-back {
+            transform: rotateY(180deg);
+            background: #f1d9b5;
+        }
+        /* 📌 释义文字（中文） */
+        #definition {
+            font-size: 25px;  /* 字体大小调整 */
+            color: gray;      /* 颜色变灰 */
+            margin-top: 10px;
+            text-align: center;
+            width: 80%;
+        }
+
+        /* 📌 假名（阅读）部分 */
+        .reading {
+            font-size: 44px;
+            color: rgb(0, 0, 0);
+            margin-top: 14px;
+        }
+
+        /* 📌 按钮整体布局 */
+        .buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        /* 📌 主要功能按钮 */
+        .prev-button, .unknown-button, .review-button {
+            background: #ecaf73;
+            color: black;
+            padding: 15px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .prev-button:hover, .unknown-button:hover, .review-button:hover {
+            background: #FAF0E6;
+        }
+
+        /* 📌 复习按钮 */
+        .review-button {
+            background: #4caf50;
+        }
+        .review-button:hover {
+            background: #388e3c;
+        }
+
+        /* 📌 发音按钮 */
+        .speak-button {
+            background: #ffcc99;
+            color: black;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .speak-button:hover {
+            background: #ffb366;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 词库导入按钮 -->
+    <div class="controls">
+        <label for="fileInput" class="custom-file-upload">📂 选择文件</label>
+        <input type="file" id="fileInput" accept=".csv,.json">
+        <button class="import-button" onclick="importWordList()">📥 导入词库</button>
+        <!-- <button class="prev-button" onclick="prevWord()">⬅ 回退</button> -->
+        <button class="unknown-button" onclick="markAsUnknown()">❌ 不认识</button>
+        <button class="review-button" onclick="reviewUnknownWords()">🔄 复习</button>
+    </div>
+
+    <!-- ✅ .container 用来包裹单词列表 + 单词卡片 -->
+    <div class="container">
+        <!-- 📌 单词列表（最左边） -->
+        <div class="word-list">
+            <h3>单词列表</h3>
+            <ul id="wordList"></ul>
+        </div>
+
+        <!-- 📌 单词卡片（在右边） -->
+        <div class="card" onclick="flipCard()">
+            <div class="card-inner">
+                <div class="card-front">
+                    <div id="reading" class="reading">（假名）</div>
+                    <button class="speak-button" onclick="speakWord(event)">🔊 发音</button>
+                </div>
+                <div class="card-back">
+                    <div id="word">汉字</div>
+                    <div id="definition">释义...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        let words = [];
+        let unknownWords = [];
+        let currentIndex = 0;
+
+        function importWordList() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert("⚠️ 请选择一个 CSV 或 JSON 词库文件！");
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                const content = event.target.result;
+                try {
+                    words = file.name.endsWith(".csv") ? parseCSV(content) : JSON.parse(content);
+                    currentIndex = 0;
+                    loadWord();
+                    alert("✅ 词库导入成功！");
+                } catch (error) {
+                    alert("❌ 文件解析失败，请检查格式！");
+                }
+            };
+
+            reader.readAsText(file);
+        }
+
+        function parseCSV(csvText) {
+            return csvText.trim().split("\n").map(row => {
+                const [word, reading, definition] = row.split(",");
+                return { word: word.trim(), reading: reading.trim(), definition: definition.trim() };
+            });
+        }
+
+ 
+        function updateWordList() {
+            const wordListContainer = document.getElementById('wordList');
+            wordListContainer.innerHTML = ''; // 清空旧列表
+
+            words.forEach((wordObj, index) => {
+                const listItem = document.createElement('li');
+
+                // ✅ 假名（默认显示）
+                const readingSpan = document.createElement('span');
+                readingSpan.innerText = wordObj.reading;
+                readingSpan.classList.add('reading');
+
+                // ✅ 汉字 + 中文（默认隐藏）
+                const extraInfo = document.createElement('div');
+                extraInfo.classList.add('extra-info');
+                extraInfo.style.display = 'none'; // 🚀 默认隐藏
+
+                const kanjiSpan = document.createElement('span');
+                kanjiSpan.innerText = wordObj.word;
+                kanjiSpan.classList.add('kanji');
+                kanjiSpan.style.display = 'none'; // 🚀 默认隐藏
+
+                const definitionSpan = document.createElement('span');
+                definitionSpan.innerText = wordObj.definition;
+                definitionSpan.classList.add('definition');
+                definitionSpan.style.display = 'none'; // 🚀 默认隐藏
+
+                extraInfo.appendChild(kanjiSpan);
+                extraInfo.appendChild(definitionSpan);
+
+                listItem.appendChild(readingSpan);
+                listItem.appendChild(extraInfo);
+
+                // ✅ 点击事件：**同时更新 `单词卡片` 和 `释义`**
+                listItem.onclick = function () {
+                    if (currentIndex !== index) {
+                        // 🚀 **点击不同单词时**
+                        currentIndex = index;
+                        loadWord(); // ✅ 更新 `单词卡片`
+                        
+                        // 🚀 **同时展开 `释义`**
+                        extraInfo.style.display = 'flex';
+                        kanjiSpan.style.display = 'inline';
+                        definitionSpan.style.display = 'inline';
+                    } else {
+                        // 🚀 **点击相同单词时，仅切换 `释义`**
+                        const isOpen = extraInfo.style.display === 'flex';
+                        extraInfo.style.display = isOpen ? 'none' : 'flex';
+                        kanjiSpan.style.display = isOpen ? 'none' : 'inline';
+                        definitionSpan.style.display = isOpen ? 'none' : 'inline';
+                    }
+                };
+
+                wordListContainer.appendChild(listItem);
+            });
+        }
+
+
+
+
+
+
+        // 📌 确保 loadWord() 更新单词列表
+        function loadWord() {
+            if (words.length > 0) {
+                document.getElementById('reading').innerText = words[currentIndex].reading || '暂无假名';
+                document.getElementById('word').innerText = words[currentIndex].word;
+                document.getElementById('definition').innerText = words[currentIndex].definition || "暂无释义";
+                speakWord();
+            } else {
+                document.getElementById('reading').innerText = "";
+                document.getElementById('word').innerText = "暂无单词";
+                document.getElementById('definition').innerText = "请导入词库";
+            }
+            updateWordList(); // ✅ 保持列表更新
+        }
+
+
+
+         function speakWord() {
+            const utterance = new SpeechSynthesisUtterance(words[currentIndex].word);
+            utterance.lang = "ja-JP";
+
+            // ✅ 取消当前语音，防止打断
+            speechSynthesis.cancel();  
+
+            const voices = speechSynthesis.getVoices();
+            const japaneseVoice = voices.find(voice => voice.lang === "ja-JP");
+
+            if (japaneseVoice) {
+                utterance.voice = japaneseVoice;
+            }
+
+            speechSynthesis.speak(utterance);
+        }
+        document.addEventListener("click", function(event) {
+            if (event.target.classList.contains("speak-button")) {
+                event.stopPropagation(); // ✅ 阻止点击事件冒泡，避免翻转卡片
+                speakWord();
+            }
+        });
+
+
+
+
+        function flipCard() {
+            document.querySelector('.card').classList.toggle('flipped');
+        }
+
+        function prevWord() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                loadWord();
+            }
+        }
+
+        function markAsUnknown() {
+            if (!unknownWords.includes(words[currentIndex])) {
+                unknownWords.push(words[currentIndex]);
+            }
+            currentIndex = (currentIndex + 1) % words.length;
+            loadWord();
+        }
+
+        function reviewUnknownWords() {
+            if (unknownWords.length > 0) {
+                words = unknownWords;
+                unknownWords = [];
+                currentIndex = 0;
+                loadWord();
+            }
+        }
+                document.addEventListener('keydown', (event) => {
+            if (event.key === "ArrowRight" && words.length > 0) {
+                currentIndex = (currentIndex + 1) % words.length;
+                loadWord();
+            }
+            if (event.key === "ArrowLeft" && words.length > 0) {
+                currentIndex = (currentIndex - 1 + words.length) % words.length;
+                loadWord();
+            }
+            if (event.key === "ArrowDown") {
+                // 🚀 **点击下键，翻转卡片**
+                document.querySelector('.card').classList.toggle('flipped');
+            }
+        });
+
+
+    </script>
+</body>
+</html>
