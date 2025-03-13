@@ -27,6 +27,9 @@
             background: #fecf9f;
             border-radius: 10px;
         }
+        
+
+
 
         /* 📌 隐藏默认文件输入框 */
         input[type="file"] {
@@ -400,7 +403,12 @@
 
 
 
-         function speakWord() {
+        function speakWord(event) {
+            // ✅ 阻止事件冒泡，防止触发 `flipCard()`
+            if (event) {
+                event.stopPropagation();
+            }
+
             const utterance = new SpeechSynthesisUtterance(words[currentIndex].word);
             utterance.lang = "ja-JP";
 
@@ -416,12 +424,7 @@
 
             speechSynthesis.speak(utterance);
         }
-        document.addEventListener("click", function(event) {
-            if (event.target.classList.contains("speak-button")) {
-                event.stopPropagation(); // ✅ 阻止点击事件冒泡，避免翻转卡片
-                speakWord();
-            }
-        });
+
 
 
 
